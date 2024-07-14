@@ -13,26 +13,14 @@ NUM_LAYERS = 6
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 text_data = request.urlopen('https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt').read().decode('utf-8')
-characters = sorted(list(set(text_data)))
+characters = list(set(text_data))
 vocab_size = len(characters)
-
+print(characters)
 stoi = {ch: i for i, ch in enumerate(characters)}
 itos = {i: ch for i, ch in enumerate(characters)}
 
 encode = lambda x: [stoi[ch] for ch in x]
 decode = lambda x: ''.join([itos[i] for i in x])
-
-data = torch.tensor(encode(text_data), dtype = torch.long).to(device)
-train_data = data[:int(0.8 * len(data))]
-val_data = data[int(0.8 * len(data)):]
-
-def get_batch(data: torch.Tensor,
-              batch_size: int,
-              block_size: int):
-    start_idx = torch.randint(low = 0, high = len(data) - block_size, size = (batch_size,))
-    x = torch.stack([data[start:start + block_size] for start in start_idx])
-    y = torch.stack([data[start + 1:start + block_size + 1] for start in start_idx])
-    return x, y
 
 class Head(nn.Module):
     """ one head of self-attention """
@@ -135,24 +123,12 @@ class GPTModel(nn.Module):
     
 def main():
     model = GPTModel().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    model.train()
-    average_loss = 0
-    for epoch in range(NUM_EPOCHS):
-        x,y = get_batch(train_data, BATCH_SIZE, BLOCK_SIZE)
-        x,y = x.to(device), y.to(device)
-        logits, loss = model(x,y)
-        optimizer.zero_grad()
-        loss.backward()
-        average_loss += loss.item()
-        if (epoch + 1)% 1000 == 0:
-            average_loss /= 1000
-            print(f"Epoch {epoch + 1} Loss {average_loss}")
-        optimizer.step()
-
-    x = torch.randint(low  = 0, high = vocab_size, size = (1, 1)).to(device)
-    x = model.generate(x, 1000)
-    print(decode(x[0].cpu().numpy()))
+    model.load_state_dict(torch.load('shakespeareGPT.pth'))
+    model.eval()
+    with torch.inference_mode():
+        x = torch.randint(low  = 0, high = vocab_size, size = (1, 1)).to(device)
+        x = model.generate(x, 1000)
+        print(decode(x[0].cpu().numpy()))
 
 if __name__ == "__main__":
     main()
