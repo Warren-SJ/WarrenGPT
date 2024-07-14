@@ -13,9 +13,8 @@ NUM_LAYERS = 6
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 text_data = request.urlopen('https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt').read().decode('utf-8')
-characters = list(set(text_data))
+characters = sorted(list(set(text_data)))
 vocab_size = len(characters)
-print(characters)
 stoi = {ch: i for i, ch in enumerate(characters)}
 itos = {i: ch for i, ch in enumerate(characters)}
 
